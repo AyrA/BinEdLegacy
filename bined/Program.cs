@@ -5,153 +5,9 @@ using System.Linq;
 
 namespace bined
 {
-    /// <summary>
-    /// Status codes unrelated to Command results
-    /// </summary>
-    public struct RET
+
+    public partial class Program
     {
-        /// <summary>
-        /// Application exited sucessfully
-        /// </summary>
-        /// <remarks>This is always the case unless the "Fatal" option is enabled</remarks>
-        public const int OK = 0;
-        /// <summary>
-        /// Help was displayed
-        /// </summary>
-        public const int HELP = 1;
-
-    }
-
-    /// <summary>
-    /// Result codes in relation to Commands
-    /// </summary>
-    public struct RESULT
-    {
-        /// <summary>
-        /// Command executed sucessfully
-        /// </summary>
-        public const int OK = 0;
-        /// <summary>
-        /// Command is invalid
-        /// </summary>
-        public const int INVALID_COMMAND = 1;
-        /// <summary>
-        /// No file is open but command needs a file
-        /// </summary>
-        public const int NOFILE = 2;
-        /// <summary>
-        /// Number of arguments doesn't matches Command requirements
-        /// </summary>
-        public const int ARGUMENT_MISMATCH = 3;
-        /// <summary>
-        /// File already open
-        /// </summary>
-        public const int FILE_OPEN = 4;
-        /// <summary>
-        /// Command Valid but File/FileName related issues happened.
-        /// </summary>
-        public const int IO_ERROR = 5;
-        /// <summary>
-        /// The given argument is not a valid number
-        /// </summary>
-        public const int INVALID_NUMBER = 6;
-        /// <summary>
-        /// The given argument is not a valid argument
-        /// </summary>
-        public const int INVALID_ARG = 7;
-    }
-
-    /// <summary>
-    /// Types of Command
-    /// </summary>
-    public enum CommandType
-    {
-        /// <summary>
-        /// No command (blank line)
-        /// </summary>
-        Blank,
-        /// <summary>
-        /// Command is invalid
-        /// </summary>
-        Invalid,
-        /// <summary>
-        /// Create a file
-        /// </summary>
-        CreateFile,
-        /// <summary>
-        /// Open an existing file
-        /// </summary>
-        OpenFile,
-        /// <summary>
-        /// Close a file
-        /// </summary>
-        CloseFile,
-        /// <summary>
-        /// Close and delete current file
-        /// </summary>
-        DeleteFile,
-        /// <summary>
-        /// Concatenate files
-        /// </summary>
-        ConcatFile,
-        /// <summary>
-        /// Set an option
-        /// </summary>
-        SetOption,
-        /// <summary>
-        /// Write specific bytes to file
-        /// </summary>
-        WriteBytes,
-        /// <summary>
-        /// Seek to the given location
-        /// </summary>
-        SeekTo,
-        /// <summary>
-        /// Set file length
-        /// </summary>
-        SetLength,
-        /// <summary>
-        /// Find content in file
-        /// </summary>
-        Find,
-        /// <summary>
-        /// Dump file content to console
-        /// </summary>
-        Dump,
-        /// <summary>
-        /// Current file status
-        /// </summary>
-        Status,
-        /// <summary>
-        /// Show Command Help
-        /// </summary>
-        Help,
-        /// <summary>
-        /// Show more detailed help
-        /// </summary>
-        HelpDetails,
-        /// <summary>
-        /// Quit application
-        /// </summary>
-        Quit
-    }
-
-    public struct Command
-    {
-        public CommandType CommandType;
-        public string[] Arguments;
-    }
-
-
-    public class Program
-    {
-        private struct Options
-        {
-            public bool EnableOutput;
-            public bool PipeMode;
-            public bool Fail;
-        }
-
         private static Stream FILE;
         private static string FileName;
 
@@ -230,6 +86,9 @@ namespace bined
                                 Status(OPT, "File closed", RESULT.OK);
                             }
                             break;
+                        case CommandType.SetLength:
+                            SetLength(OPT, C);
+                            break;
                         case CommandType.SeekTo:
                             SeekStream(OPT, C);
                             break;
@@ -242,6 +101,23 @@ namespace bined
                             else
                             {
                                 Status(OPT, $"No File open", -1, true);
+                            }
+                            break;
+                        case CommandType.SetOption:
+                            switch (C.Arguments.Length)
+                            {
+                                case 0:
+                                    ShowOptions(OPT);
+                                    break;
+                                case 1:
+                                    ShowOption(OPT, C.Arguments[0]);
+                                    break;
+                                case 2:
+                                    OPT = SetOption(OPT, C.Arguments[0], C.Arguments[1]);
+                                    break;
+                                default:
+                                    Status(OPT, $"Too many arguments", RESULT.ARGUMENT_MISMATCH, true);
+                                    break;
                             }
                             break;
                         case CommandType.Help:
@@ -266,11 +142,112 @@ namespace bined
             return RET.OK;
         }
 
+        private static void SetLength(Options OPT, Command C)
+        {
+            if (FILE == null)
+            {
+                Status(OPT, "No file open", RESULT.NOFILE);
+            }
+            else
+            {
+                if (C.Arguments.Length == 1)
+                {
+                    var L = GetLong(C.Arguments[0], long.MinValue);
+                    if (L >= 0)
+                    {
+                        FILE.SetLength(L);
+                        //If new length is less than position, it forces the position inside the new length
+                        if (FILE.Position > L)
+                        {
+                            Status(OPT, $"Length={FILE.Length}. Pos={FILE.Position}", RESULT.PART_OK);
+                        }
+                        else
+                        {
+                            Status(OPT, $"Length={FILE.Length}. Pos={FILE.Position}", RESULT.OK);
+                        }
+                    }
+                    else if (L > long.MinValue)
+                    {
+                        Status(OPT, $"Number too small. New length must be at least 0", RESULT.INVALID_NUMBER);
+                    }
+                    else
+                    {
+                        Status(OPT, $"Unable to parse {C.Arguments[0]} into a number", RESULT.INVALID_NUMBER);
+                    }
+                }
+                else
+                {
+                    Status(OPT, $"Require exactly 1 argument, {C.Arguments.Length} given", RESULT.ARGUMENT_MISMATCH);
+                }
+            }
+        }
+
+        private static Options SetOption(Options OPT, string Option, string Value)
+        {
+            if (string.IsNullOrEmpty(Option))
+            {
+                Status(OPT, $"Missing Option", RESULT.INVALID_ARG);
+            }
+            else
+            {
+                switch (Option.ToLower())
+                {
+                    case "pipe":
+                        OPT.PipeMode = Value != "0";
+                        break;
+                    case "fatal":
+                        OPT.Fail = Value != "0";
+                        break;
+                    case "out":
+                        OPT.EnableOutput = Value != "0";
+                        break;
+                    default:
+                        Status(OPT, $"Non-Existing Option {Option}", RESULT.INVALID_ARG);
+                        return OPT;
+                }
+                Status(OPT, $"Option {Option} Set", RESULT.OK);
+            }
+            return OPT;
+        }
+
+        private static void ShowOption(Options OPT, string Option)
+        {
+            if (string.IsNullOrEmpty(Option))
+            {
+                Status(OPT, $"Missing Option", RESULT.INVALID_ARG);
+            }
+            else
+            {
+                switch (Option.ToLower())
+                {
+                    case "pipe":
+                        Status(OPT, $"pipe={(OPT.PipeMode ? 1 : 0)}", RESULT.OK);
+                        return;
+                    case "fatal":
+                        Status(OPT, $"fatal={(OPT.Fail ? 1 : 0)}", RESULT.OK);
+                        return;
+                    case "out":
+                        Status(OPT, $"out={(OPT.EnableOutput ? 1 : 0)}", RESULT.OK);
+                        return;
+                    default:
+                        Status(OPT, $"Non-Existing Option {Option}", RESULT.INVALID_ARG);
+                        return;
+                }
+            }
+        }
+
+        private static void ShowOptions(Options OPT)
+        {
+            ShowOption(OPT, "out");
+            ShowOption(OPT, "pipe");
+            ShowOption(OPT, "fatal");
+        }
+
         private static void SeekStream(Options OPT, Command C)
         {
             if (FILE == null)
             {
-                Status(OPT, "no file open", RESULT.NOFILE);
+                Status(OPT, "No file open", RESULT.NOFILE);
             }
             else
             {
@@ -281,20 +258,28 @@ namespace bined
                     {
                         if (C.Arguments.Length > 1)
                         {
-                            switch (C.Arguments[1].ToLower())
+                            if (C.Arguments.Length > 2)
                             {
-                                case "b":
-                                    break;
-                                case "c":
-                                    P1 = FILE.Position + P1;
-                                    break;
-                                case "e":
-                                    P1 = FILE.Length + P1;
-                                    break;
-                                default:
-                                    P1 = long.MinValue;
-                                    Status(OPT, $"Unable to read {C.Arguments[1]} as seek origin", RESULT.INVALID_ARG);
-                                    break;
+                                P1 = long.MinValue;
+                                Status(OPT, "Too many arguments", RESULT.ARGUMENT_MISMATCH);
+                            }
+                            else
+                            {
+                                switch (C.Arguments[1].ToLower())
+                                {
+                                    case "b":
+                                        break;
+                                    case "c":
+                                        P1 = FILE.Position + P1;
+                                        break;
+                                    case "e":
+                                        P1 = FILE.Length + P1;
+                                        break;
+                                    default:
+                                        P1 = long.MinValue;
+                                        Status(OPT, $"Unable to read {C.Arguments[1]} as seek origin", RESULT.INVALID_ARG);
+                                        break;
+                                }
                             }
                         }
                         if (P1 > long.MinValue)
@@ -304,7 +289,7 @@ namespace bined
                             try
                             {
                                 FILE.Seek(Seek, SeekOrigin.Begin);
-                                Status(OPT, $"Original={P1} Clamped={Seek} Position={FILE.Position}", RESULT.OK);
+                                Status(OPT, $"Original={P1} Clamped={Seek} Position={FILE.Position}", Seek == P1 ? RESULT.OK : RESULT.PART_OK);
                             }
                             catch (Exception ex)
                             {
@@ -389,11 +374,19 @@ File offset
 -----------
 Commands that modify the file will not set/reset the offset before writing.
 Notably the 'cat' command will simply copy the given file to the current file
-without setting the pointer to the end. This causes the content after the
-pointer to be overwritten and some content to be appended if the given file
-is large enough.
+without first setting the pointer to the end. This causes the content after
+the pointer to be overwritten and some content to be appended if the given
+file is large enough.
 
-Trying to set the File offset out of bounds will clamp it into bounds.
+Trying to set the File offset out of bounds will clamp it into bounds and
+return with an error code
+
+Prefixes
+--------
+Some functions support prefixed byte values.
+These prefixes can't be stacked.
+This behaviour can be simulated by performing the first operation, then
+seeking back and performing the second operation over the same byte range.
 
 Finding content
 ---------------
@@ -410,7 +403,9 @@ hexadecimal is triggered by prefixing a number with '0x'
 Options
 -------
 Multiple options are supported and can be modified at any time.
-The number in brackets is the default (if static)
+The number in brackets is the default (if static).
+Settings that accept 0 or 1 as a value will treat everything that is not 0
+as a 1.
 
 out[1]: If set to 0 it will no longer output any status messages
 pipe: If set to 1, the application will only output codes, no messages.
@@ -447,15 +442,27 @@ cat  - Concat files. Writes the content to the given file to the current file
        Arg 1: File to read data from
 
 w    - Writes the given hex values to the currently open file
-       Arg 1: a list of hexadecimal values, for example FE ED BE EF
-       Spaces are optional. A value can be prefixed with + or - to add or
-       subtract to/from the current value. The prefix applies to an entire
-       list of values, +FEED is identical to +FE +ED
+       Arg 1-n: a list of hexadecimal values, for example FE ED BE EF
+       Spaces are optional.
+       A value can be prefixed:
+       +  - Add value to current byte
+       -  - Subtract value from current byte
+       &  - Binary AND with current byte
+       |  - Binary OR with current byte
+       ^  - Binary XOR with current byte.
+       The prefix applies to an entire list of values, +FEED is
+       identical to +FE +ED
        If you try to use prefixes and the pointer is at the file end, 0 is used
        as a base value.
+       Mathematical operations that result in the value not being 0<=x<=255 has
+       the overflow cut off by applying x&0xFF.
+
+r    - Repeatedly write given bytes.
+       Arg 1  : Number of repetitions
+       Arg 2-n: Bytes. See 'w' for info on format
 
 s    - Seek to the given position
-       Arg 1: Integer (prefix with '0x' for hexadecimal)
+       Arg 1: New Position
        Arg 2: B=Begin, C=Current, E=End
 
 l    - Set stream length. If bigger than current length, the file is extended,
@@ -544,6 +551,11 @@ q    - Quit the application
             return Default;
         }
 
+        private static ByteOperation[] GetByteOperations(string[] Param)
+        {
+            throw new NotImplementedException();
+        }
+
         private static Command GetCommand(string Line)
         {
             Command C = new Command()
@@ -557,8 +569,20 @@ q    - Quit the application
                 var Segments = Line.Split(' ');
                 switch (Segments[0].ToLower())
                 {
+                    case "w":
+                        C.CommandType = CommandType.WriteBytes;
+                        C.Arguments = Segments.Skip(1).ToArray();
+                        break;
+                    case "r":
+                        C.CommandType = CommandType.RepeatBytes;
+                        C.Arguments = Segments.Skip(1).ToArray();
+                        break;
                     case "s":
                         C.CommandType = CommandType.SeekTo;
+                        C.Arguments = Segments.Skip(1).ToArray();
+                        break;
+                    case "l":
+                        C.CommandType = CommandType.SetLength;
                         C.Arguments = Segments.Skip(1).ToArray();
                         break;
                     case "q":
@@ -580,6 +604,10 @@ q    - Quit the application
                         break;
                     case "stat":
                         C.CommandType = CommandType.Status;
+                        break;
+                    case "opt":
+                        C.CommandType = CommandType.SetOption;
+                        C.Arguments = Segments.Skip(1).ToArray();
                         break;
                     case "?":
                         C.CommandType = CommandType.Help;
