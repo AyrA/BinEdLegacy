@@ -78,7 +78,7 @@ namespace bined
             }
             if (!Console.IsInputRedirected)
             {
-                E("Welcome to bined. Type '?' to get editor help");
+                E("Welcome to BinEd. Type '?' to get editor help");
             }
             var IN = Console.In;
             while (IN != null)
