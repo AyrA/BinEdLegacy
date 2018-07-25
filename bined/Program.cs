@@ -51,6 +51,14 @@ namespace bined
         /// Command Valid but File/FileName related issues happened.
         /// </summary>
         public const int IO_ERROR = 5;
+        /// <summary>
+        /// The given argument is not a valid number
+        /// </summary>
+        public const int INVALID_NUMBER = 6;
+        /// <summary>
+        /// The given argument is not a valid argument
+        /// </summary>
+        public const int INVALID_ARG = 7;
     }
 
     /// <summary>
@@ -222,8 +230,11 @@ namespace bined
                                 Status(OPT, "File closed", RESULT.OK);
                             }
                             break;
+                        case CommandType.SeekTo:
+                            SeekStream(OPT, C);
+                            break;
                         case CommandType.Status:
-                            //Reports file status. This command never fails
+                            //This command never fails
                             if (FILE != null)
                             {
                                 Status(OPT, $"Position={FILE.Position} Length={FILE.Length} Name={FileName}", FILE.Position, true);
@@ -253,6 +264,64 @@ namespace bined
                 }
             }
             return RET.OK;
+        }
+
+        private static void SeekStream(Options OPT, Command C)
+        {
+            if (FILE == null)
+            {
+                Status(OPT, "no file open", RESULT.NOFILE);
+            }
+            else
+            {
+                if (C.Arguments.Length > 0)
+                {
+                    var P1 = GetLong(C.Arguments[0], long.MinValue);
+                    if (P1 > long.MinValue)
+                    {
+                        if (C.Arguments.Length > 1)
+                        {
+                            switch (C.Arguments[1].ToLower())
+                            {
+                                case "b":
+                                    break;
+                                case "c":
+                                    P1 = FILE.Position + P1;
+                                    break;
+                                case "e":
+                                    P1 = FILE.Length + P1;
+                                    break;
+                                default:
+                                    P1 = long.MinValue;
+                                    Status(OPT, $"Unable to read {C.Arguments[1]} as seek origin", RESULT.INVALID_ARG);
+                                    break;
+                            }
+                        }
+                        if (P1 > long.MinValue)
+                        {
+                            //Clamp value
+                            var Seek = Math.Min(Math.Max(P1, 0L), FILE.Length);
+                            try
+                            {
+                                FILE.Seek(Seek, SeekOrigin.Begin);
+                                Status(OPT, $"Original={P1} Clamped={Seek} Position={FILE.Position}", RESULT.OK);
+                            }
+                            catch (Exception ex)
+                            {
+                                Status(OPT, $"Unable to seek to Offset {Seek}. {ex.Message}", RESULT.IO_ERROR);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        Status(OPT, $"Unable to read {C.Arguments[0]} as number", RESULT.INVALID_NUMBER);
+                    }
+                }
+                else
+                {
+                    Status(OPT, "Seek requires at least one parameter", RESULT.ARGUMENT_MISMATCH);
+                }
+            }
         }
 
         private static void OpenFile(Options OPT, Command C, bool IsOpen)
@@ -387,7 +456,7 @@ w    - Writes the given hex values to the currently open file
 
 s    - Seek to the given position
        Arg 1: Integer (prefix with '0x' for hexadecimal)
-       Arg 2: S=Start, C=Current, E=End
+       Arg 2: B=Begin, C=Current, E=End
 
 l    - Set stream length. If bigger than current length, the file is extended,
        if smaller than the current length, the file is truncated.
@@ -456,14 +525,12 @@ q    - Quit the application
             if (!string.IsNullOrEmpty(Param))
             {
                 Param = Param.Trim();
-                if (Param.ToLower().StartsWith("0x"))
+                if (Param.ToLower().StartsWith("0x") || Param.ToLower().StartsWith("-0x"))
                 {
                     //Need to parse negative hexadecimal manually
                     var Factor = Param.StartsWith("-") ? -1L : 1L;
-                    if (Factor == -1)
-                    {
-                        Param = Param.Substring(1);
-                    }
+                    //Cut prefixes
+                    Param = Param.Substring(Factor == 1 ? 2 : 3);
                     if (long.TryParse(Param, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out Ret))
                     {
                         return Ret * Factor;
@@ -490,6 +557,10 @@ q    - Quit the application
                 var Segments = Line.Split(' ');
                 switch (Segments[0].ToLower())
                 {
+                    case "s":
+                        C.CommandType = CommandType.SeekTo;
+                        C.Arguments = Segments.Skip(1).ToArray();
+                        break;
                     case "q":
                         C.CommandType = CommandType.Quit;
                         break;
@@ -506,6 +577,9 @@ q    - Quit the application
                         break;
                     case "cl":
                         C.CommandType = CommandType.CloseFile;
+                        break;
+                    case "stat":
+                        C.CommandType = CommandType.Status;
                         break;
                     case "?":
                         C.CommandType = CommandType.Help;
