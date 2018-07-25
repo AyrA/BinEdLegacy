@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("bined")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Scripting optimized binary file editor")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("AyrA")]
 [assembly: AssemblyProduct("bined")]
