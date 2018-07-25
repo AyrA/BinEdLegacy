@@ -145,6 +145,7 @@ namespace bined
 
         private static Stream FILE;
         private static string FileName;
+
         public static int Main(string[] args)
         {
             FILE = null;
@@ -166,9 +167,11 @@ namespace bined
                 E("Welcome to BinEd. Type '?' to get editor help");
             }
             var IN = Console.In;
+            //Allows us to exit by setting IN to null.
             while (IN != null)
             {
                 var Line = IN.ReadLine();
+                //If Line is null, the input stream read a CTRL+Z
                 if (Line == null)
                 {
                     return RET.OK;
