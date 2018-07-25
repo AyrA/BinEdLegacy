@@ -97,6 +97,28 @@ namespace bined
                         case CommandType.OpenFile:
                             OpenFile(OPT, C, C.CommandType == CommandType.OpenFile);
                             break;
+                        case CommandType.DeleteFile:
+                            if (FILE == null)
+                            {
+                                Status(OPT, "no file open", RESULT.NOFILE);
+                            }
+                            else
+                            {
+                                FILE.Close();
+                                FILE.Dispose();
+                                FILE = null;
+                                try
+                                {
+                                    File.Delete(FileName);
+                                    Status(OPT, $"{FileName} closed and deleted", RESULT.OK);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Status(OPT, $"{FileName} closed but unable to delete. {ex.Message}", RESULT.IO_ERROR);
+                                }
+                                FileName = null;
+                            }
+                            break;
                         case CommandType.CloseFile:
                             if (FILE == null)
                             {
@@ -107,6 +129,7 @@ namespace bined
                                 FILE.Close();
                                 FILE.Dispose();
                                 FILE = null;
+                                FileName = null;
                                 Status(OPT, "File closed", RESULT.OK);
                             }
                             break;
@@ -351,6 +374,9 @@ q    - Quit the application
                     case "o":
                         C.CommandType = CommandType.OpenFile;
                         C.Arguments = new string[] { string.Join(" ", Segments.Skip(1)) };
+                        break;
+                    case "del":
+                        C.CommandType = CommandType.DeleteFile;
                         break;
                     case "cl":
                         C.CommandType = CommandType.CloseFile;
