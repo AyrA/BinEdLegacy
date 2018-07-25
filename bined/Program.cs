@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -437,6 +438,43 @@ q    - Quit the application
                 E("Aborting because Failure Mode has been turned on. Code={0}", Code);
                 Environment.Exit((int)Math.Min(Code, int.MaxValue));
             }
+        }
+
+        private static int GetInt(string Param, int Default = 0)
+        {
+            long Ret = GetLong(Param, Default);
+            if (Ret < int.MinValue || Ret > int.MaxValue)
+            {
+                return Default;
+            }
+            return (int)Ret;
+        }
+
+        private static long GetLong(string Param, long Default = 0)
+        {
+            long Ret = 0;
+            if (!string.IsNullOrEmpty(Param))
+            {
+                Param = Param.Trim();
+                if (Param.ToLower().StartsWith("0x"))
+                {
+                    //Need to parse negative hexadecimal manually
+                    var Factor = Param.StartsWith("-") ? -1L : 1L;
+                    if (Factor == -1)
+                    {
+                        Param = Param.Substring(1);
+                    }
+                    if (long.TryParse(Param, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out Ret))
+                    {
+                        return Ret * Factor;
+                    }
+                }
+                else if (long.TryParse(Param, out Ret))
+                {
+                    return Ret;
+                }
+            }
+            return Default;
         }
 
         private static Command GetCommand(string Line)
