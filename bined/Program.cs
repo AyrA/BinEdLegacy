@@ -4,41 +4,126 @@ using System.Linq;
 
 namespace bined
 {
+    /// <summary>
+    /// Status codes unrelated to Command results
+    /// </summary>
     public struct RET
     {
+        /// <summary>
+        /// Application exited sucessfully
+        /// </summary>
+        /// <remarks>This is always the case unless the "Fatal" option is enabled</remarks>
         public const int OK = 0;
+        /// <summary>
+        /// Help was displayed
+        /// </summary>
         public const int HELP = 1;
 
     }
 
+    /// <summary>
+    /// Result codes in relation to Commands
+    /// </summary>
     public struct RESULT
     {
+        /// <summary>
+        /// Command executed sucessfully
+        /// </summary>
         public const int OK = 0;
+        /// <summary>
+        /// Command is invalid
+        /// </summary>
         public const int INVALID_COMMAND = 1;
+        /// <summary>
+        /// No file is open but command needs a file
+        /// </summary>
         public const int NOFILE = 2;
+        /// <summary>
+        /// Number of arguments doesn't matches Command requirements
+        /// </summary>
         public const int ARGUMENT_MISMATCH = 3;
+        /// <summary>
+        /// File already open
+        /// </summary>
         public const int FILE_OPEN = 4;
+        /// <summary>
+        /// Command Valid but File/FileName related issues happened.
+        /// </summary>
         public const int IO_ERROR = 5;
     }
 
+    /// <summary>
+    /// Types of Command
+    /// </summary>
     public enum CommandType
     {
+        /// <summary>
+        /// No command (blank line)
+        /// </summary>
         Blank,
+        /// <summary>
+        /// Command is invalid
+        /// </summary>
         Invalid,
+        /// <summary>
+        /// Create a file
+        /// </summary>
         CreateFile,
+        /// <summary>
+        /// Open an existing file
+        /// </summary>
         OpenFile,
+        /// <summary>
+        /// Close a file
+        /// </summary>
         CloseFile,
+        /// <summary>
+        /// Close and delete current file
+        /// </summary>
         DeleteFile,
+        /// <summary>
+        /// Concatenate files
+        /// </summary>
         ConcatFile,
+        /// <summary>
+        /// Set an option
+        /// </summary>
         SetOption,
+        /// <summary>
+        /// Write specific bytes to file
+        /// </summary>
         WriteBytes,
+        /// <summary>
+        /// Seek to the given location
+        /// </summary>
         SeekTo,
+        /// <summary>
+        /// Set file length
+        /// </summary>
         SetLength,
+        /// <summary>
+        /// Find content in file
+        /// </summary>
         Find,
+        /// <summary>
+        /// Dump file content to console
+        /// </summary>
         Dump,
+        /// <summary>
+        /// Current file status
+        /// </summary>
         Status,
+        /// <summary>
+        /// Show Command Help
+        /// </summary>
         Help,
+        /// <summary>
+        /// Show more detailed help
+        /// </summary>
         HelpDetails,
+        /// <summary>
+        /// Quit application
+        /// </summary>
         Quit
     }
 
