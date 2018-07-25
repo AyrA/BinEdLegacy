@@ -229,51 +229,134 @@ namespace bined
             /// Bytes to Process
             /// </summary>
             public byte[] Bytes;
+            /// <summary>
+            /// Last error from Constructor or ProcessBytes call
+            /// </summary>
+            public Exception LastError
+            { get; private set; }
+
+            public ByteOperation(string Param)
+            {
+                const string PREFIXES = "+-&|^";
+
+                Mode = ByteMode.Overwrite;
+                Bytes = null;
+                LastError = null;
+
+                if (!string.IsNullOrWhiteSpace(Param))
+                {
+                    if (PREFIXES.Contains(Param[0]))
+                    {
+                        switch (Param[0])
+                        {
+                            case '+':
+                                Mode = ByteMode.Add;
+                                break;
+                            case '-':
+                                Mode = ByteMode.Subtract;
+                                break;
+                            case '&':
+                                Mode = ByteMode.AND;
+                                break;
+                            case '|':
+                                Mode = ByteMode.OR;
+                                break;
+                            case '^':
+                                Mode = ByteMode.XOR;
+                                break;
+                            default:
+                                LastError = new ArgumentException("Invalid Prefix");
+                                break;
+                        }
+                        Bytes = GetBytes(Param.Substring(1));
+                    }
+                    else
+                    {
+                        Bytes = GetBytes(Param);
+                    }
+                }
+            }
 
             /// <summary>
             /// Processes the bytes
             /// </summary>
             /// <param name="S">Stream to operate on</param>
-            public void ProcessBytes(Stream S)
+            public bool ProcessBytes(Stream S)
             {
-                if (Mode == ByteMode.Overwrite)
+                LastError = null;
+                if (Bytes != null && Bytes.Length > 0)
                 {
-                    if (S.CanWrite)
+                    if (Mode == ByteMode.Overwrite)
                     {
-                        S.Write(Bytes, 0, Bytes.Length);
-                    }
-                }
-                else
-                {
-                    if (S.CanSeek && S.CanRead && S.CanWrite)
-                    {
-                        var Pos = S.Position;
-                        var Data = new byte[Bytes.Length];
-                        var Readed = S.Read(Data, 0, Data.Length);
-                        S.Position = Pos;
-                        switch (Mode)
+                        if (S.CanWrite)
                         {
-                            case ByteMode.Add:
-                                Data = Data.Select((v, i) => v + Data[i] & 0xFF).Cast<byte>().ToArray();
-                                break;
-                            case ByteMode.Subtract:
-                                Data = Data.Select((v, i) => v - Data[i] & 0xFF).Cast<byte>().ToArray();
-                                break;
-                            case ByteMode.XOR:
-                                Data = Data.Select((v, i) => v ^ Data[i]).Cast<byte>().ToArray();
-                                break;
-                            case ByteMode.OR:
-                                Data = Data.Select((v, i) => v | Data[i]).Cast<byte>().ToArray();
-                                break;
-                            case ByteMode.AND:
-                                Data = Data.Select((v, i) => v & Data[i]).Cast<byte>().ToArray();
-                                break;
-                            default:
-                                throw new NotImplementedException();
+                            try
+                            {
+                                S.Write(Bytes, 0, Bytes.Length);
+                            }
+                            catch (Exception ex)
+                            {
+                                LastError = ex;
+                            }
                         }
-                        S.Write(Data, 0, Data.Length);
+                        else
+                        {
+                            LastError = new IOException("Stream is not writable");
+                        }
+                    }
+                    else
+                    {
+                        if (S.CanSeek && S.CanRead && S.CanWrite)
+                        {
+                            var Pos = S.Position;
+                            var Data = new byte[Bytes.Length];
+                            var Readed = S.Read(Data, 0, Data.Length);
+                            switch (Mode)
+                            {
+                                case ByteMode.Add:
+                                    Data = Bytes.Select((v, i) => b(v + Data[i])).ToArray();
+                                    break;
+                                case ByteMode.Subtract:
+                                    Data = Bytes.Select((v, i) => b(v - Data[i])).ToArray();
+                                    break;
+                                case ByteMode.XOR:
+                                    Data = Bytes.Select((v, i) => b(v ^ Data[i])).ToArray();
+                                    break;
+                                case ByteMode.OR:
+                                    Data = Bytes.Select((v, i) => b(v | Data[i])).ToArray();
+                                    break;
+                                case ByteMode.AND:
+                                    Data = Bytes.Select((v, i) => b(v & Data[i])).ToArray();
+                                    break;
+                                default:
+                                    LastError = new NotImplementedException($"ByteMode {Mode} is not implemented");
+                                    break;
+                            }
+                            if (LastError == null)
+                            {
+                                try
+                                {
+                                    S.Position = Pos;
+                                    S.Write(Data, 0, Data.Length);
+                                }
+                                catch (Exception ex)
+                                {
+                                    LastError = ex;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            LastError = new IOException("Stream is not writable/readable/seekable");
+                        }
                     }
                 }
+                return LastError == null;
+            }
+
+            private static byte b(int i)
+            {
+                return (byte)(i & 0xFF);
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -86,6 +87,12 @@ namespace bined
                                 Status(OPT, "File closed", RESULT.OK);
                             }
                             break;
+                        case CommandType.WriteBytes:
+                            WriteBytes(OPT, C);
+                            break;
+                        case CommandType.RepeatBytes:
+                            RepeatBytes(OPT, C);
+                            break;
                         case CommandType.SetLength:
                             SetLength(OPT, C);
                             break;
@@ -140,6 +147,85 @@ namespace bined
                 }
             }
             return RET.OK;
+        }
+
+        private static void RepeatBytes(Options OPT, Command C)
+        {
+            if (FILE == null)
+            {
+                Status(OPT, "No file open", RESULT.NOFILE);
+            }
+            else if (C.Arguments.Length > 1)
+            {
+                var Count = GetLong(C.Arguments[0], long.MinValue);
+                if (Count == long.MinValue)
+                {
+                    Status(OPT, $"Can't convert {C.Arguments[0]} to a number", RESULT.INVALID_NUMBER);
+                }
+                else if (Count < 1)
+                {
+                    Status(OPT, $"First argument must be at least 1", RESULT.INVALID_NUMBER);
+                }
+                else
+                {
+                    var Operations = GetByteOperations(C.Arguments.Skip(1));
+                    if (Operations == null)
+                    {
+                        Status(OPT, "Unable to convert argument to byte instructions", RESULT.INVALID_ARG);
+                    }
+                    else
+                    {
+                        for (var i = 0; i < Count; i++)
+                        {
+                            foreach (var Opt in Operations)
+                            {
+                                if (!Opt.ProcessBytes(FILE))
+                                {
+                                    Status(OPT, $"Error writing to file", RESULT.IO_ERROR);
+                                    return;
+                                }
+                            }
+                        }
+                        Status(OPT, $"Written={Operations.Sum(m => m.Bytes.LongLength * Count)} Position={FILE.Position}", RESULT.OK);
+                    }
+                }
+            }
+            else
+            {
+                Status(OPT, "'r' requires at least two arguments", RESULT.ARGUMENT_MISMATCH);
+            }
+        }
+
+        private static void WriteBytes(Options OPT, Command C)
+        {
+            if (FILE == null)
+            {
+                Status(OPT, "No file open", RESULT.NOFILE);
+            }
+            else if (C.Arguments.Length > 0)
+            {
+                var Operations = GetByteOperations(C.Arguments);
+                if (Operations == null)
+                {
+                    Status(OPT, "Unable to convert argument to byte instructions", RESULT.INVALID_ARG);
+                }
+                else
+                {
+                    foreach (var Opt in Operations)
+                    {
+                        if (!Opt.ProcessBytes(FILE))
+                        {
+                            Status(OPT, $"Error writing to file", RESULT.IO_ERROR);
+                            return;
+                        }
+                    }
+                    Status(OPT, $"Written={Operations.Sum(m => m.Bytes.LongLength)} Position={FILE.Position}", RESULT.OK);
+                }
+            }
+            else
+            {
+                Status(OPT, "'w' requires at least one argument", RESULT.ARGUMENT_MISMATCH);
+            }
         }
 
         private static void SetLength(Options OPT, Command C)
@@ -442,16 +528,17 @@ cat  - Concat files. Writes the content to the given file to the current file
        Arg 1: File to read data from
 
 w    - Writes the given hex values to the currently open file
-       Arg 1-n: a list of hexadecimal values, for example FE ED BE EF
-       Spaces are optional.
+       Arg 1-n: a list of hexadecimal values, for example FE EDBE EF
+       Spaces are optional. The prefix '0x' is not allowed and bytes must be
+       padded with 0 to make them an even length
        A value can be prefixed:
        +  - Add value to current byte
        -  - Subtract value from current byte
        &  - Binary AND with current byte
        |  - Binary OR with current byte
        ^  - Binary XOR with current byte.
-       The prefix applies to an entire list of values, +FEED is
-       identical to +FE +ED
+       The prefix applies to an entire list of values, +EDBE is
+       identical to +ED +BE
        If you try to use prefixes and the pointer is at the file end, 0 is used
        as a base value.
        Mathematical operations that result in the value not being 0<=x<=255 has
@@ -551,9 +638,60 @@ q    - Quit the application
             return Default;
         }
 
-        private static ByteOperation[] GetByteOperations(string[] Param)
+        private static byte[] GetBytes(string Param)
         {
-            throw new NotImplementedException();
+            if (string.IsNullOrWhiteSpace(Param))
+            {
+                return null;
+            }
+            Param = Param.Trim();
+            if (Param.Length % 2 != 0)
+            {
+                return null;
+            }
+            if (Param.ToLower().StartsWith("0x"))
+            {
+                Param = Param.Substring(2);
+            }
+            int[] Data = new int[Param.Length / 2];
+            for (var i = 0; i < Data.Length; i++)
+            {
+                Data[i] = GetInt("0x" + Param.Substring(i * 2, 2), -1);
+            }
+            if (Data.Any(m => m < 0))
+            {
+                return null;
+            }
+            return Data.Select(m => (byte)m).ToArray();
+        }
+
+        private static ByteOperation[] GetByteOperations(IEnumerable<string> Param)
+        {
+            var Operations = Param.Select(m => new ByteOperation(m)).ToArray();
+            if (Operations.Length == 0 || Operations.Any(m => m.Bytes == null || m.LastError != null))
+            {
+                return null;
+            }
+            //Consolidate identical consecutive modes to make writes faster
+            var OPS = new List<ByteOperation>();
+            OPS.Add(Operations[0]);
+            for (var i = 1; i < Operations.Length; i++)
+            {
+                var Current = Operations[i];
+                var Last = OPS.Last();
+                if (Current.Mode == Last.Mode)
+                {
+                    //Consolidate identical mode
+                    Last.Bytes = Last.Bytes.Concat(Current.Bytes).ToArray();
+                    OPS[OPS.Count - 1] = Last;
+                }
+                else
+                {
+                    //Append different mode
+                    OPS.Add(Current);
+                }
+            }
+            return OPS.ToArray();
         }
 
         private static Command GetCommand(string Line)
@@ -566,7 +704,7 @@ q    - Quit the application
 
             if (!string.IsNullOrEmpty(Line))
             {
-                var Segments = Line.Split(' ');
+                var Segments = Line.Trim().Split(' ');
                 switch (Segments[0].ToLower())
                 {
                     case "w":
