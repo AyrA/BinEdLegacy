@@ -88,6 +88,9 @@ namespace bined
                                 Status(OPT, "File closed", RESULT.OK);
                             }
                             break;
+                        case CommandType.Find:
+                            FindContent(OPT, C);
+                            break;
                         case CommandType.WriteBytes:
                             WriteBytes(OPT, C);
                             break;
@@ -154,6 +157,11 @@ namespace bined
                 }
             }
             return RET.OK;
+        }
+
+        private static void FindContent(Options oPT, Command c)
+        {
+            throw new NotImplementedException();
         }
 
         private static void DumpContents(Options OPT, Command C)
@@ -598,7 +606,7 @@ seeking back and performing the second operation over the same byte range.
 Finding content
 ---------------
 When using find there are two possible outcomes:
-- Success: The file pointer is set to the position where the given bytws start
+- Success: The file pointer is set to the position where the given bytes start
 - Failure: The file pointer is restored to the previous position
 
 Numerical Arguments
