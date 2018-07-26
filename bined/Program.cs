@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace bined
 {
@@ -93,6 +94,9 @@ namespace bined
                         case CommandType.RepeatBytes:
                             RepeatBytes(OPT, C);
                             break;
+                        case CommandType.Dump:
+                            DumpContents(OPT, C);
+                            break;
                         case CommandType.SetLength:
                             SetLength(OPT, C);
                             break;
@@ -150,6 +154,54 @@ namespace bined
                 }
             }
             return RET.OK;
+        }
+
+        private static void DumpContents(Options OPT, Command C)
+        {
+            if (FILE == null)
+            {
+                Status(OPT, "No file open", RESULT.NOFILE);
+            }
+            else
+            {
+                if (C.Arguments.Length > 0)
+                {
+                    var L = GetLong(C.Arguments[0], long.MinValue);
+                    if (L == long.MinValue)
+                    {
+                        Status(OPT, $"Unable to parse {C.Arguments[0]} into a number", RESULT.INVALID_NUMBER);
+                    }
+                    else if (L > 0)
+                    {
+                        byte[] Buffer = new byte[16];
+                        while (L > 0)
+                        {
+                            int Readed = FILE.Read(Buffer, 0, Buffer.Length);
+                            O(
+                                //Hexadecimal
+                                string.Join(" ", Buffer.Select((m, i) => i < Readed ? m.ToString("X2") : "  ")) +
+                                //Spacer
+                                "\t" +
+                                //ASCII with control chars filtered
+                                ASCII(Buffer.Take(Readed).ToArray()));
+                            L -= Readed < 1 ? L : Readed;
+                        }
+                    }
+                    else
+                    {
+                        Status(OPT, $"Number too small. Minimum is 1", RESULT.INVALID_NUMBER);
+                    }
+                }
+                else
+                {
+                    Status(OPT, "d requires one argument", RESULT.ARGUMENT_MISMATCH);
+                }
+            }
+        }
+
+        private static string ASCII(byte[] Bytes)
+        {
+            return Bytes == null ? "" : Encoding.ASCII.GetString(Bytes.Select(m => m < 32 || m == 0xFF ? (byte)0x2E : m).ToArray());
         }
 
         private static void Concat(Options OPT, Command C)
@@ -785,6 +837,10 @@ q    - Quit the application
                         C.CommandType = CommandType.SetLength;
                         C.Arguments = Segments.Skip(1).ToArray();
                         break;
+                    case "d":
+                        C.CommandType = CommandType.Dump;
+                        C.Arguments = Segments.Skip(1).ToArray();
+                        break;
                     case "q":
                         C.CommandType = CommandType.Quit;
                         break;
@@ -826,10 +882,13 @@ q    - Quit the application
 
         private static void ShowHelp()
         {
-            E(@"bined [/?]
-Binary file editor
+            E(@"BinEd [/?]
+Binary file editor optimized for script processing
 
-/?  - Show this Help");
+/?  - Show this Help
+
+This application has no other arguments.
+Use the inline help system inside the application to get a command listing.");
         }
 
         private static string Write(TextWriter Output, string Format, object[] Args)
