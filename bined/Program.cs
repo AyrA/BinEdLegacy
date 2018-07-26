@@ -279,6 +279,11 @@ namespace bined
                         {
                             L = FILE.Position;
                         }
+                        //Implement relative to Position
+                        else if (C.Arguments[0].Trim().StartsWith("+"))
+                        {
+                            L += FILE.Position;
+                        }
 
                         FILE.SetLength(L);
                         //If new length is less than position, it forces the position inside the new length
@@ -600,11 +605,13 @@ s    - Seek to the given position
        Arg 1: New Position
        Arg 2: B=Begin, C=Current, E=End
 
-l    - Set stream length. If bigger than current length, the file is extended,
-       if smaller than the current length, the file is truncated.
+l    - Set absolute stream length. If bigger than current length, the file is
+       extended, if smaller than the current length, the file is truncated.
        If the value is negative it will be subtracted from the current file
-       position. Using '-0' thus trims the file to the current position.
-       Arg 1: New length
+       position. If the value is prefixed with '+' it will be added to the
+       current file position. Using -0 or +0 trims the file to the current
+       file pointer position.
+       Arg 1: New length with optonal prefix
 
 f    - Find values. Seeks to the start of the given hex values.
        If the values are not found, the original file position is restored.
@@ -668,7 +675,8 @@ q    - Quit the application
             long Ret = 0;
             if (!string.IsNullOrEmpty(Param))
             {
-                Param = Param.Trim();
+                //Allow "+" Prefixing. Technically allows any number of plusses at the start
+                Param = Param.Trim().TrimStart('+');
                 if (Param.ToLower().StartsWith("0x") || Param.ToLower().StartsWith("-0x"))
                 {
                     //Need to parse negative hexadecimal manually
