@@ -192,9 +192,9 @@ Describes the current point in the file from which reads and writes are performe
 Forcing a number into a certain Range.
 In essence it's this:
 
-    value =Math.max(MINIMUM, Math.Min(MAXIMUM, value));
+    value = Math.max(MINIMUM, Math.Min(MAXIMUM, value));
 
-## ASCII
+### ASCII
 
 American Standard Code for Information Interchange.
 A 7-bit character set supporting 128 characters.
@@ -202,7 +202,7 @@ It serves as the base of almost all other existing character sets.
 The table is thus identical to the first 128 character of most codepages,
 it lacks almost all characters necessary to display other languages than english.
 
-## Control Characters
+### Control Characters
 
 The first 32 Characters and last single character of the ASCII codepage.
 They have no graphical representation most of the times.
