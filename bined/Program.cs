@@ -164,6 +164,7 @@ namespace bined
             }
             else
             {
+                var Pos = FILE.Position;
                 if (C.Arguments.Length > 0)
                 {
                     var L = GetLong(C.Arguments[0], long.MinValue);
@@ -185,6 +186,10 @@ namespace bined
                                 //ASCII with control chars filtered
                                 ASCII(Buffer.Take(Readed).ToArray()));
                             L -= Readed < 1 ? L : Readed;
+                        }
+                        if (!C.Arguments[0].Trim().StartsWith("+"))
+                        {
+                            FILE.Position = Pos;
                         }
                     }
                     else
@@ -502,6 +507,9 @@ namespace bined
 
         private static void OpenFile(Options OPT, Command C, bool IsOpen)
         {
+            //Attributes under which we won't open the file
+            const FileAttributes CRITICAL = FileAttributes.ReadOnly | FileAttributes.System | FileAttributes.Hidden;
+
             if (FILE == null)
             {
                 FileName = C.Arguments.FirstOrDefault();
@@ -520,7 +528,15 @@ namespace bined
                     {
                         try
                         {
-                            FILE = File.Open(FileName, IsOpen ? FileMode.Open : FileMode.CreateNew, FileAccess.ReadWrite);
+                            var Attr = File.GetAttributes(FileName);
+                            if ((Attr & CRITICAL) == 0)
+                            {
+                                FILE = File.Open(FileName, IsOpen ? FileMode.Open : FileMode.CreateNew, FileAccess.ReadWrite);
+                            }
+                            else
+                            {
+                                throw new IOException("File has Attributes that demand Protection");
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -607,6 +623,7 @@ Pipe Mode
 ---------
 Enabling pipe mode renders some commands less verbose because the output of
 commands is limited to a single numerical code.
+'d' will always output to console regardless of mode
 ", RESULT.OK);
         }
 
@@ -671,7 +688,9 @@ f    - Find values. Seeks to the start of the given hex values.
 
 d    - Dumps the given number of bytes to the console as a hexadecimal view
        The dump is 16 bytes wide and contains hexadecimal values and ASCII
-       renditions.
+       renditions. If the number is larger than the remaining bytes, it's
+       clamped down. Dumping WILL NOT advance the file pointer unless the
+       number is prefixed with '+'
        Arg 1: Number of bytes to dump
 
 stat - Prints status of the current file to the console.
@@ -821,6 +840,10 @@ q    - Quit the application
                         C.CommandType = CommandType.ConcatFile;
                         C.Arguments = new string[] { string.Join(" ", Segments.Skip(1)) };
                         break;
+                    case "f":
+                        C.CommandType = CommandType.Find;
+                        C.Arguments = Segments.Skip(1).ToArray();
+                        break;
                     case "w":
                         C.CommandType = CommandType.WriteBytes;
                         C.Arguments = Segments.Skip(1).ToArray();
@@ -883,7 +906,9 @@ q    - Quit the application
         private static void ShowHelp()
         {
             E(@"BinEd [/?]
-Binary file editor optimized for script processing
+Binary file editor optimized for script processing.
+This editor focuses on editing binary files by means of commands that allow
+for easy automation.
 
 /?  - Show this Help
 
