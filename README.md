@@ -96,7 +96,7 @@ This command uses the "Prefixed bytes" format.
 
 ### `r <count> <Bytes> [...]`
 
-Executes `w <Bytes> [...]` as many times as specified
+Executes `w <Bytes> [...]` as many times as specified.
 This command uses the "Prefixed bytes" format.
 
 ### `s <Position> [{b|c|e}]`
@@ -136,25 +136,27 @@ Searches for the given bytes in the file.
 If found, it sets the cursor to the start of the match.
 If not found, it resets the cursor to where it was before the search.
 This is a somewhat time consuming operation
-and it's recommended to seek close to where the match is expected.
+and it's recommended to seek close to where the match is expected for large files.
 
-The search is performed forward only.
+The search is performed forward looking only.
+To search the entire file, use `s 0` first.
 
 The arguments are Raw Bytes concatenated into a single byte array
 
 ### `d <Number>`
 
-Dumps the given number of bytes to the console as a hexadecimal view
-The dump is 16 bytes wide and contains hexadecimal values and ASCII
-renditions. If the number is larger than the remaining bytes, it's
-clamped down. Dumping WILL NOT advance the file pointer unless the
-number is prefixed with `+`.
+Dumps the given number of bytes to the console as a hexadecimal view.
+The dump is 16 bytes wide and contains hexadecimal values and ASCII renditions.
+The ASCII part has all control characters stripped.
+This will look similar to what Hex Editors display.
+If the number is larger than the remaining bytes, it's clamped down.
+Dumping WILL NOT advance the file pointer unless the number is prefixed with `+`.
 
 This command will not respect disabled output or pipe mode.
 
 ### `stat`
 
-Prints a single line of statistics:
+Prints a single line of statistics containing:
 
 - Cursor Position
 - File Length
@@ -191,6 +193,21 @@ Forcing a number into a certain Range.
 In essence it's this:
 
     value =Math.max(MINIMUM, Math.Min(MAXIMUM, value));
+
+## ASCII
+
+American Standard Code for Information Interchange.
+A 7-bit character set supporting 128 characters.
+It serves as the base of almost all other existing character sets.
+The table is thus identical to the first 128 character of most codepages,
+it lacks almost all characters necessary to display other languages than english.
+
+## Control Characters
+
+The first 32 Characters and last single character of the ASCII codepage.
+They have no graphical representation most of the times.
+They historically performed various signal and text control actions.
+Apart from line breaks and tabulator, most lost their meaning.
 
 ## Type of arguments
 
