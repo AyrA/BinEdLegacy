@@ -211,17 +211,21 @@ Apart from line breaks and tabulator, most lost their meaning.
 
 ## Type of arguments
 
-The chapters below descript certain argument types of the commands above
+The chapters below describe certain argument types of the commands above
 
 ### Numbers
 
 Most arguments that accept numbers will accept them in decimal and hexadecimal format.
-To signify hexadecimal, the number is to be prefixed with `0x`.
+To signify hexadecimal, the number is to be prefixed with `0x`
+unless the command only accepts hexadecimal numbers where the format is implied.
 Both, hexadecimal and decimal numbers, can additionally be prefixed with `+` or `-`
+
+Please check the command documentation carefully because `+` can change the behavior of the command.
 
 ### Raw Bytes
 
 Hexadecimal only byte specification without support for any prefixes.
+Using `0x` is not necessary.
 
 ### Prefixed Bytes
 
@@ -256,18 +260,21 @@ This means the application must have read+write permission on the file in any ca
 Commands that accept file names will parse the name identical to the console in regards to relative paths.
 Be sure 'Current Directory' is set properly before using relative paths.
 Contrary to the command line,
-file names are not enclosed in Quotation marks if they contain spaces in their name.
+file names are not enclosed in quotes `""` if they contain spaces in their name.
 
 ## Options
 
 Multiple options are supported and can be modified at any time.
-The number in brackets is the default (if static).
 Settings that accept `0` or `1` as a value will treat everything that is not `0`
 as a `1`.
 
-- `out[1]`: If set to `0` it will no longer output any status messages
+- `out`: (Default `1`) If set to `0` it will no longer output any status messages
 - `pipe`: If set to `1`, the application will only output codes, no messages. Defaults to `1` if the input stream is redirected
-- `fatal[0]`: If set to `1`, the application will abort on any failure code
+- `fatal`: (Default `0`) If set to `1`, the application will abort on any failure code
+
+## Fatal Mode
+
+If enabled, the last error code is used as application exit code.
 
 ## Pipe Mode
 
