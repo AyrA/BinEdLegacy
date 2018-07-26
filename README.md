@@ -51,20 +51,20 @@ is used by automated means, otherwise the application will always exit with code
 
 Commands will never ask for confirmation and are always executed instantaneously.
 
-### ?
+### `?`
 
 This command shows the list of supported commands
 
-### ??
+### `??`
 
 This command shows details and background information about commands and the editor
 
-### c <FileName>
+### `c <FileName>`
 
 This command creates a new empty file.
 This command will fail if the file already exists.
 
-### o <FileName>
+### `o <FileName>`
 
 This command opens an existing file for editing.
 This command will fail if the file doesn't exists yet.
@@ -76,31 +76,31 @@ The editor refuses to open a file that is marked with at least one of these attr
 
 To open these files in Windows, run the command `attrib -H -R -S <FileName>` first.
 
-### cl
+### `cl`
 
 Closes an open file
 
-### del
+### `del`
 
 Closes an open file and deletes it from disk
 
-### cat <FileName>
+### `cat <FileName>`
 
 Reads the specified file and copies all contents into the currently open file.
 It will start to write at the current cursor location and extend the file if needed.
 
-### w <Bytes> [...]
+### `w <Bytes> [...]`
 
 Writes the given bytes to the current file.
 Values that only occupy a single byte must be prefixed with `0`.
 This command uses the "Prefixed bytes" format.
 
-### r <count> <Bytes> [...]
+### `r <count> <Bytes> [...]`
 
 Executes `w <Bytes> [...]` as many times as specified
 This command uses the "Prefixed bytes" format.
 
-### s <Position> [{b|c|e}]
+### `s <Position> [{b|c|e}]`
 
 Sets the cursor to the given position.
 The optional second argument specifies the offset base of the first argument:
@@ -111,7 +111,7 @@ The optional second argument specifies the offset base of the first argument:
 
 The value is clamped to fit into the file region
 
-### l <Length>
+### `l <Length>`
 
 Sets the new file length.
 This is an easy method to shrink a file.
@@ -131,7 +131,7 @@ This means using `-0` or `+0` will trim the file size to the current cursor posi
 
 The cursor position is clamped to the new size.
 
-### f <Bytes> [...]
+### `f <Bytes> [...]`
 
 Searches for the given bytes in the file.
 If found, it sets the cursor to the start of the match.
@@ -143,7 +143,7 @@ The search is performed forward only.
 
 The arguments are Raw Bytes concatenated into a single byte array
 
-### d <Number>
+### `d <Number>`
 
 Dumps the given number of bytes to the console as a hexadecimal view
 The dump is 16 bytes wide and contains hexadecimal values and ASCII
@@ -153,7 +153,7 @@ number is prefixed with `+`.
 
 This command will not respect disabled output or pipe mode.
 
-### stat
+### `stat`
 
 Prints a single line of statistics:
 
@@ -163,14 +163,14 @@ Prints a single line of statistics:
 
 This command will not trigger a fail if no file is open.
 
-### opt [name [value]]
+### `opt [name [value]]`
 
 Displays or sets an option.
 If no arguments are given, all options and values are shown.
 If one argument is given, that option is shown only.
 If two arguments are given, the option is set to the new value.
 
-### q
+### `q`
 
 Exits the application. This automatically closes any open file.
 
