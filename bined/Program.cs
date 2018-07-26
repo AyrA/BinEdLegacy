@@ -99,6 +99,9 @@ namespace bined
                         case CommandType.SeekTo:
                             SeekStream(OPT, C);
                             break;
+                        case CommandType.ConcatFile:
+                            Concat(OPT, C);
+                            break;
                         case CommandType.Status:
                             //This command never fails
                             if (FILE != null)
@@ -147,6 +150,36 @@ namespace bined
                 }
             }
             return RET.OK;
+        }
+
+        private static void Concat(Options OPT, Command C)
+        {
+            if (FILE == null)
+            {
+                Status(OPT, "No file open", RESULT.NOFILE);
+            }
+            else
+            {
+                if (C.Arguments.Length > 0)
+                {
+                    try
+                    {
+                        using (var FS = File.OpenRead(C.Arguments.First()))
+                        {
+                            FS.CopyTo(FILE);
+                            Status(OPT, $"Written={FS.Length} Position={FILE.Position}", RESULT.OK);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Status(OPT, $"Unable to concat files. {ex.Message}", RESULT.IO_ERROR);
+                    }
+                }
+                else
+                {
+                    Status(OPT, "cat requires one argument", RESULT.ARGUMENT_MISMATCH);
+                }
+            }
         }
 
         private static void RepeatBytes(Options OPT, Command C)
@@ -241,6 +274,12 @@ namespace bined
                     var L = GetLong(C.Arguments[0], long.MinValue);
                     if (L >= 0)
                     {
+                        //Implement "Negative Zero"
+                        if (L == 0 && C.Arguments[0].Trim().StartsWith("-"))
+                        {
+                            L = FILE.Position;
+                        }
+
                         FILE.SetLength(L);
                         //If new length is less than position, it forces the position inside the new length
                         if (FILE.Position > L)
@@ -254,7 +293,16 @@ namespace bined
                     }
                     else if (L > long.MinValue)
                     {
-                        Status(OPT, $"Number too small. New length must be at least 0", RESULT.INVALID_NUMBER);
+                        if (L < -FILE.Position)
+                        {
+                            Status(OPT, $"Number too small. Minimum is {-FILE.Position}", RESULT.INVALID_NUMBER);
+                        }
+                        else
+                        {
+                            FILE.SetLength(FILE.Position - L);
+                            //New length will always be less than the position. Always return OK
+                            Status(OPT, $"Length={FILE.Length}. Pos={FILE.Position}", RESULT.OK);
+                        }
                     }
                     else
                     {
@@ -554,6 +602,8 @@ s    - Seek to the given position
 
 l    - Set stream length. If bigger than current length, the file is extended,
        if smaller than the current length, the file is truncated.
+       If the value is negative it will be subtracted from the current file
+       position. Using '-0' thus trims the file to the current position.
        Arg 1: New length
 
 f    - Find values. Seeks to the start of the given hex values.
@@ -707,6 +757,10 @@ q    - Quit the application
                 var Segments = Line.Trim().Split(' ');
                 switch (Segments[0].ToLower())
                 {
+                    case "cat":
+                        C.CommandType = CommandType.ConcatFile;
+                        C.Arguments = new string[] { string.Join(" ", Segments.Skip(1)) };
+                        break;
                     case "w":
                         C.CommandType = CommandType.WriteBytes;
                         C.Arguments = Segments.Skip(1).ToArray();
