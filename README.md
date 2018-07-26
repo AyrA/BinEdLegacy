@@ -199,13 +199,13 @@ In essence it's this:
 American Standard Code for Information Interchange.
 A 7-bit character set supporting 128 characters.
 It serves as the base of almost all other existing character sets.
-The table is thus identical to the first 128 character of most codepages,
-it lacks almost all characters necessary to display other languages than english.
+The table is thus identical to the first 128 characters of most codepages,
+it lacks almost all characters necessary to fully use other languages than english.
 
 ### Control Characters
 
 The first 32 Characters and last single character of the ASCII codepage.
-They have no graphical representation most of the times.
+They almost always have no graphical representation.
 They historically performed various signal and text control actions.
 Apart from line breaks and tabulator, most lost their meaning.
 
