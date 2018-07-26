@@ -1,15 +1,72 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace bined
 {
     public partial class Program
     {
+        [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
+        static extern int memcmp(byte[] b1, byte[] b2, UIntPtr count);
 
-        private static void FindContent(Options oPT, Command c)
+        private static void FindContent(Options OPT, Command C)
         {
-            throw new NotImplementedException();
+            if (FILE == null)
+            {
+                Status(OPT, "No file open", RESULT.NOFILE);
+            }
+            else
+            {
+                var Pos = FILE.Position;
+                if (C.Arguments.Length > 0)
+                {
+                    var Operations = GetByteOperations(C.Arguments);
+                    if (Operations == null)
+                    {
+                        Status(OPT, "Unable to convert arguments to byte instructions", RESULT.INVALID_ARG);
+                    }
+                    else if (Operations.Any(m => m.Mode != ByteMode.Overwrite))
+                    {
+                        Status(OPT, "Find does not support Byte modes", RESULT.INVALID_ARG);
+                    }
+                    else
+                    {
+                        var Bytes = Operations.SelectMany(m => m.Bytes).ToArray();
+                        var Buffer = new byte[Bytes.Length];
+                        if (FILE.Read(Buffer, 0, Buffer.Length) == Buffer.Length)
+                        {
+                            while (FILE.Position < FILE.Length)
+                            {
+                                //Check if content found by comparing the byte arrays
+                                if (memcmp(Buffer, Bytes, (UIntPtr)Buffer.Length) == 0)
+                                {
+                                    //Set proper file position
+                                    FILE.Position -= Buffer.Length;
+                                    Status(OPT, $"Content found Position={FILE.Position}", RESULT.OK);
+                                    return;
+                                }
+                                else
+                                {
+                                    //Shift bytes to the left
+                                    for (var i = 1; i < Buffer.Length; i++)
+                                    {
+                                        Buffer[i - 1] = Buffer[i];
+                                    }
+                                    //Add new byte
+                                    Buffer[Buffer.Length - 1] = (byte)FILE.ReadByte();
+                                }
+                            }
+                        }
+                        Status(OPT, "Content not found", RESULT.PART_OK);
+                        FILE.Position = Pos;
+                    }
+                }
+                else
+                {
+                    Status(OPT, "'f' requires at least one argument", RESULT.ARGUMENT_MISMATCH);
+                }
+            }
         }
 
         private static void DumpContents(Options OPT, Command C)
@@ -112,7 +169,7 @@ namespace bined
                     var Operations = GetByteOperations(C.Arguments.Skip(1));
                     if (Operations == null)
                     {
-                        Status(OPT, "Unable to convert argument to byte instructions", RESULT.INVALID_ARG);
+                        Status(OPT, "Unable to convert arguments to byte instructions", RESULT.INVALID_ARG);
                     }
                     else
                     {
@@ -148,7 +205,7 @@ namespace bined
                 var Operations = GetByteOperations(C.Arguments);
                 if (Operations == null)
                 {
-                    Status(OPT, "Unable to convert argument to byte instructions", RESULT.INVALID_ARG);
+                    Status(OPT, "Unable to convert arguments to byte instructions", RESULT.INVALID_ARG);
                 }
                 else
                 {
