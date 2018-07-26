@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace bined
+namespace BinEd
 {
     /// <summary>
     /// Main Functions
@@ -70,7 +70,7 @@ namespace bined
                         case CommandType.DeleteFile:
                             if (FILE == null)
                             {
-                                Status(OPT, "no file open", RESULT.NOFILE);
+                                Status(OPT, "No file open", RESULT.NOFILE);
                             }
                             else
                             {
@@ -92,7 +92,7 @@ namespace bined
                         case CommandType.CloseFile:
                             if (FILE == null)
                             {
-                                Status(OPT, "no file open", RESULT.NOFILE);
+                                Status(OPT, "No file open", RESULT.NOFILE);
                             }
                             else
                             {
@@ -132,7 +132,7 @@ namespace bined
                             }
                             else
                             {
-                                Status(OPT, $"No File open", -1, true);
+                                Status(OPT, "No File open", -1, true);
                             }
                             break;
                         case CommandType.SetOption:
@@ -148,7 +148,7 @@ namespace bined
                                     OPT = SetOption(OPT, C.Arguments[0], C.Arguments[1]);
                                     break;
                                 default:
-                                    Status(OPT, $"Too many arguments", RESULT.ARGUMENT_MISMATCH, true);
+                                    Status(OPT, "Too many arguments", RESULT.ARGUMENT_MISMATCH, true);
                                     break;
                             }
                             break;

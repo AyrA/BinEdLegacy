@@ -2,7 +2,7 @@
 using System.IO;
 using System.Linq;
 
-namespace bined
+namespace BinEd
 {
     /// <summary>
     /// Contains Structures, Enums and Constants
