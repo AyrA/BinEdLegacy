@@ -4,6 +4,9 @@ using System.Linq;
 
 namespace bined
 {
+    /// <summary>
+    /// Contains Structures, Enums and Constants
+    /// </summary>
     public partial class Program
     {
         #region Const+Enum
@@ -21,7 +24,11 @@ namespace bined
             /// <summary>
             /// Help was displayed
             /// </summary>
-            public const int HELP = 1;
+            public const int HELP = 254;
+            /// <summary>
+            /// Invalid Command line Arguments
+            /// </summary>
+            public const int INVALID = 255;
 
         }
 
@@ -181,6 +188,8 @@ namespace bined
         }
 
         #endregion
+
+        #region Structs
 
         /// <summary>
         /// Represents a Command from the User
@@ -359,5 +368,7 @@ namespace bined
                 return (byte)(i & 0xFF);
             }
         }
+
+        #endregion
     }
 }

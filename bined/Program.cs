@@ -7,14 +7,23 @@ using System.Text;
 
 namespace bined
 {
-
+    /// <summary>
+    /// Main Functions
+    /// </summary>
     public partial class Program
     {
+        /// <summary>
+        /// Currently processed file
+        /// </summary>
         private static Stream FILE;
+        /// <summary>
+        /// Currently open file name
+        /// </summary>
         private static string FileName;
 
         public static int Main(string[] args)
         {
+            //Set Defaults
             FILE = null;
             FileName = null;
             var OPT = new Options()
@@ -24,10 +33,16 @@ namespace bined
                 Fail = false
             };
 
+            //Provide Help
             if (args.Contains("/?"))
             {
                 ShowHelp();
                 return RET.HELP;
+            }
+            else if (args.Length > 0)
+            {
+                E("Invalid Command line Argument");
+                return RET.INVALID;
             }
             if (!Console.IsInputRedirected)
             {
@@ -159,6 +174,11 @@ namespace bined
             return RET.OK;
         }
 
+        /// <summary>
+        /// Converts a Line from user input to a Command and arguments
+        /// </summary>
+        /// <param name="Line">User input</param>
+        /// <returns>Command structure</returns>
         private static Command GetCommand(string Line)
         {
             Command C = new Command()
@@ -239,6 +259,9 @@ namespace bined
             return C;
         }
 
+        /// <summary>
+        /// Command Line Help
+        /// </summary>
         private static void ShowHelp()
         {
             E(@"BinEd [/?]
