@@ -92,7 +92,6 @@ It will start to write at the current cursor location and extend the file if nee
 ### `w <Bytes> [...]`
 
 Writes the given bytes to the current file.
-Values that only occupy a single byte must be prefixed with `0`.
 This command uses the "Prefixed bytes" format.
 
 ### `r <count> <Bytes> [...]`
