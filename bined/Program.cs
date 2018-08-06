@@ -20,6 +20,10 @@ namespace BinEd
         /// Currently open file name
         /// </summary>
         private static string FileName;
+        /// <summary>
+        /// Console Title for restoring it later
+        /// </summary>
+        private static string OldWindowTitle;
 
         /// <summary>
         /// Main Entry Point
@@ -28,6 +32,7 @@ namespace BinEd
         /// <returns>Exit Code</returns>
         public static int Main(string[] args)
         {
+            OldWindowTitle = Console.Title;
 #if DEBUG
             Environment.CurrentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
 #endif
@@ -46,12 +51,12 @@ namespace BinEd
             if (args.Contains("/?"))
             {
                 ShowHelp();
-                return RET.HELP;
+                return Exit(RET.HELP);
             }
             else if (args.Length > 0)
             {
                 E("Invalid Command line Argument");
-                return RET.INVALID;
+                return Exit(RET.INVALID);
             }
             if (!Console.IsInputRedirected)
             {
@@ -62,10 +67,10 @@ namespace BinEd
             while (IN != null)
             {
                 var Line = IN.ReadLine();
-                //If Line is null, the input stream read a CTRL+Z
+                //If Line is null, the input stream read a CTRL+Z or EOF
                 if (Line == null)
                 {
-                    return RET.OK;
+                    return Exit(RET.OK);
                 }
                 else
                 {
@@ -180,7 +185,19 @@ namespace BinEd
                     }
                 }
             }
-            return RET.OK;
+            return Exit(RET.OK);
+        }
+
+        /// <summary>
+        /// Exits the application and performs any cleanup not done automatically by the system
+        /// </summary>
+        /// <param name="ExitCode">ExitCode</param>
+        /// <returns>Exit Code</returns>
+        public static int Exit(int ExitCode)
+        {
+            Console.Title = OldWindowTitle;
+            Environment.Exit(ExitCode);
+            return ExitCode;
         }
 
         /// <summary>
@@ -404,7 +421,7 @@ Use the inline help system inside the application to get a command listing.");
             if (OPT.Fail && Code != RESULT.OK && !DontFail)
             {
                 E("Aborting because Failure Mode has been turned on. Code={0}", Code);
-                Environment.Exit((int)Math.Min(Code, int.MaxValue));
+                Exit((int)Math.Min(Code, int.MaxValue));
             }
         }
 
