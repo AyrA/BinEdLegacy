@@ -62,6 +62,7 @@ namespace BinEd
             {
                 E("Welcome to BinEd. Type '?' to get editor help");
             }
+            SetStatus("Ready for File");
             var IN = Console.In;
             //Allows us to exit by setting IN to null.
             while (IN != null)
@@ -101,6 +102,7 @@ namespace BinEd
                                     Status(OPT, $"{FileName} closed but unable to delete. {ex.Message}", RESULT.IO_ERROR);
                                 }
                                 FileName = null;
+                                SetStatus("Ready for File");
                             }
                             break;
                         case CommandType.CloseFile:
@@ -115,6 +117,7 @@ namespace BinEd
                                 FILE = null;
                                 FileName = null;
                                 Status(OPT, "File closed", RESULT.OK);
+                                SetStatus("Ready for File");
                             }
                             break;
                         case CommandType.Find:
@@ -183,9 +186,22 @@ namespace BinEd
                         default:
                             throw new NotImplementedException($"The operation {C.CommandType} has not been implemented yet");
                     }
+                    if (FILE == null)
+                    {
+                        SetStatus("Ready for File");
+                    }
+                    else
+                    {
+                        SetStatus($"{FILE.Position}:{FILE.Length} {FileName}");
+                    }
                 }
             }
             return Exit(RET.OK);
+        }
+
+        public static void SetStatus(string StatusText)
+        {
+            Console.Title = string.IsNullOrWhiteSpace(StatusText) ? "BinEd" : $"BinEd: {StatusText}";
         }
 
         /// <summary>
