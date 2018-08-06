@@ -446,14 +446,14 @@ namespace BinEd
                     {
                         try
                         {
-                            var Attr = File.GetAttributes(FileName);
+                            var Attr = File.Exists(FileName) ? File.GetAttributes(FileName) : FileAttributes.Normal;
                             if ((Attr & CRITICAL) == 0)
                             {
                                 FILE = File.Open(FileName, IsOpen ? FileMode.Open : FileMode.CreateNew, FileAccess.ReadWrite);
                             }
                             else
                             {
-                                throw new IOException("File has Attributes that demand Protection");
+                                throw new IOException("File has protective Attributes");
                             }
                         }
                         catch (Exception ex)
