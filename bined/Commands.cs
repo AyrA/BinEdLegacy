@@ -142,6 +142,7 @@ namespace BinEd
                         using (var FS = File.OpenRead(C.Arguments.First()))
                         {
                             FS.CopyTo(FILE);
+                            FILE.Flush();
                             Status(OPT, $"Written={FS.Length} Position={FILE.Position}", RESULT.OK);
                         }
                     }
@@ -189,11 +190,13 @@ namespace BinEd
                             {
                                 if (!Opt.ProcessBytes(FILE))
                                 {
+                                    FILE.Flush();
                                     Status(OPT, $"Error writing to file", RESULT.IO_ERROR);
                                     return;
                                 }
                             }
                         }
+                        FILE.Flush();
                         Status(OPT, $"Written={Operations.Sum(m => m.Bytes.LongLength * Count)} Position={FILE.Position}", RESULT.OK);
                     }
                 }
@@ -223,10 +226,12 @@ namespace BinEd
                     {
                         if (!Opt.ProcessBytes(FILE))
                         {
+                            FILE.Flush();
                             Status(OPT, $"Error writing to file", RESULT.IO_ERROR);
                             return;
                         }
                     }
+                    FILE.Flush();
                     Status(OPT, $"Written={Operations.Sum(m => m.Bytes.LongLength)} Position={FILE.Position}", RESULT.OK);
                 }
             }
@@ -261,6 +266,7 @@ namespace BinEd
                         }
 
                         FILE.SetLength(L);
+                        FILE.Flush();
                         //If new length is less than position, it forces the position inside the new length
                         if (FILE.Position > L)
                         {
@@ -280,6 +286,7 @@ namespace BinEd
                         else
                         {
                             FILE.SetLength(FILE.Position - L);
+                            FILE.Flush();
                             //New length will always be less than the position. Always return OK
                             Status(OPT, $"Length={FILE.Length}. Pos={FILE.Position}", RESULT.OK);
                         }
@@ -315,6 +322,9 @@ namespace BinEd
                     case "out":
                         OPT.EnableOutput = Value != "0";
                         break;
+                    case "share":
+                        OPT.Share = Value != "0";
+                        break;
                     default:
                         Status(OPT, $"Non-Existing Option {Option}", RESULT.INVALID_ARG);
                         return OPT;
@@ -343,6 +353,9 @@ namespace BinEd
                     case "out":
                         Status(OPT, $"out={(OPT.EnableOutput ? 1 : 0)}", RESULT.OK);
                         return;
+                    case "share":
+                        Status(OPT, $"share={(OPT.Share ? 1 : 0)}", RESULT.OK);
+                        return;
                     default:
                         Status(OPT, $"Non-Existing Option {Option}", RESULT.INVALID_ARG);
                         return;
@@ -355,6 +368,7 @@ namespace BinEd
             ShowOption(OPT, "out");
             ShowOption(OPT, "pipe");
             ShowOption(OPT, "fatal");
+            ShowOption(OPT, "share");
         }
 
         private static void SeekStream(Options OPT, Command C)
@@ -427,6 +441,9 @@ namespace BinEd
         {
             //Attributes under which we won't open the file
             const FileAttributes CRITICAL = FileAttributes.ReadOnly | FileAttributes.System | FileAttributes.Hidden;
+            //Fileshare constants
+            const FileShare SHARED = FileShare.ReadWrite;
+            const FileShare UNSHARED = FileShare.Read;
 
             if (FILE == null)
             {
@@ -449,7 +466,7 @@ namespace BinEd
                             var Attr = File.Exists(FileName) ? File.GetAttributes(FileName) : FileAttributes.Normal;
                             if ((Attr & CRITICAL) == 0)
                             {
-                                FILE = File.Open(FileName, IsOpen ? FileMode.Open : FileMode.CreateNew, FileAccess.ReadWrite);
+                                FILE = File.Open(FileName, IsOpen ? FileMode.Open : FileMode.CreateNew, FileAccess.ReadWrite, OPT.Share ? SHARED : UNSHARED);
                             }
                             else
                             {
@@ -536,6 +553,7 @@ out[1]: If set to 0 it will no longer output any status messages
 pipe: If set to 1, the application will only output codes, no messages.
       Defaults to 1 if the input stream is redirected 
 fatal[0]: If set to 1, the application will abort on any error.
+share[0]: If set to 1, opened files are not locked for exclusive use.
 
 Pipe Mode
 ---------

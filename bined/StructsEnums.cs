@@ -223,6 +223,11 @@ namespace BinEd
             /// Enable Hard Fail
             /// </summary>
             public bool Fail;
+            /// <summary>
+            /// Enable FileShare Permissions (ability for other applications to read/write)
+            /// </summary>
+            /// <remarks>This is very dangerous. Be careful</remarks>
+            public bool Share;
         }
 
         /// <summary>

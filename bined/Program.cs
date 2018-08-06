@@ -21,8 +21,16 @@ namespace BinEd
         /// </summary>
         private static string FileName;
 
+        /// <summary>
+        /// Main Entry Point
+        /// </summary>
+        /// <param name="args">Command line Arguments</param>
+        /// <returns>Exit Code</returns>
         public static int Main(string[] args)
         {
+#if DEBUG
+            Environment.CurrentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+#endif
             //Set Defaults
             FILE = null;
             FileName = null;
@@ -30,7 +38,8 @@ namespace BinEd
             {
                 EnableOutput = true,
                 PipeMode = false,
-                Fail = false
+                Fail = false,
+                Share = false
             };
 
             //Provide Help
