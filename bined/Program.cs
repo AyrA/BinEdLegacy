@@ -199,6 +199,10 @@ namespace BinEd
             return Exit(RET.OK);
         }
 
+        /// <summary>
+        /// Sets the title of the command line window
+        /// </summary>
+        /// <param name="StatusText">New command line window title</param>
         public static void SetStatus(string StatusText)
         {
             Console.Title = string.IsNullOrWhiteSpace(StatusText) ? "BinEd" : $"BinEd: {StatusText}";
