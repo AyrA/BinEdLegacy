@@ -16,9 +16,12 @@ It's optimized to be used with scripts but is manually usable too.
 ## Usage
 
 This application has no command line arguments.
-Just run it as is from console or double click
+Just run it as is from console or double click the executable.
 
 Type `?` to get started.
+
+Statistics of an open file are shown in the window title at all times.
+See the `stat` command chapter below for details.
 
 ## Help
 
@@ -164,6 +167,8 @@ Prints a single line of statistics containing:
 
 This command will not trigger a fail if no file is open.
 
+This information is also always present in the Window Title in the format `Position:Length Name`
+
 ### `opt [name [value]]`
 
 Displays or sets an option.
@@ -229,7 +234,7 @@ Using `0x` is not necessary.
 
 ### Prefixed Bytes
 
-Available prefixes :
+Available prefixes:
 
 - `+`: Add value to current byte
 - `-`: Subtract value from current byte
@@ -261,6 +266,7 @@ Commands that accept file names will parse the name identical to the console in 
 Be sure 'Current Directory' is set properly before using relative paths.
 Contrary to the command line,
 file names are not enclosed in quotes `""` if they contain spaces in their name.
+All commands that accept file names will also parse variables in the common format `%VARNAME%`
 
 ## Options
 
@@ -271,10 +277,7 @@ as a `1`.
 - `out`: (Default `1`) If set to `0` it will no longer output any status messages
 - `pipe`: If set to `1`, the application will only output codes, no messages. Defaults to `1` if the input stream is redirected
 - `fatal`: (Default `0`) If set to `1`, the application will abort on any failure code
-
-## Fatal Mode
-
-If enabled, the last error code is used as application exit code.
+- `share`: (Default `0`) If set to `1`, the application opens files with Share mode Read+Write
 
 ## Pipe Mode
 
@@ -282,3 +285,13 @@ Enabling pipe mode renders some commands less verbose because the output of
 commands is limited to a single numerical code.
 `d` will always output to console regardless of mode.
 
+## Fatal Mode
+
+If enabled, the last error code is used as application exit code.
+
+## Share Mode
+
+Normally files can only be written to by a single application.
+If a process has a file open for writing it becomes globally inaccessible for read, write, rename and delete.
+If share mode is enabled, files are opened in a mode that allows other processes to open this file too,
+provided that the second process can handle that mode too.
