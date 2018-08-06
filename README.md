@@ -295,3 +295,5 @@ Normally files can only be written to by a single application.
 If a process has a file open for writing it becomes globally inaccessible for read, write, rename and delete.
 If share mode is enabled, files are opened in a mode that allows other processes to open this file too,
 provided that the second process can handle that mode too.
+
+**Share mode only has an effect on files opened after it has been enabled**
