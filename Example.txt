@@ -1,0 +1,31 @@
+opt pipe 1
+? The next two commands simulate a "delete if exists", if fatal=0 that is
+o BinEd.test.exe
+del
+
+? Turn on fatal mode is generally recommended for scripts unless it's really not important for some commands to succeed
+opt fatal 1
+
+? Copying a file using BinEd
+c BinEd.test.exe
+cat BinEd.exe
+s 0
+
+? Search for "BinEd" as UTF-16 Text
+f 42 00 69 00 6E 00 45 00 64 00
+
+? Dump some bytes of that region
+s -22 C
+d 64
+s 22 C
+
+? Overwrite "BinEd" with "XXXXX"
+w 58 00 58 00 58 00 58 00 58 00
+
+? Show changes of the same window
+s -32 C
+d 64
+q
+======================
+Everything after "q" is no longer evaluated and thus doesn't needs to be syntactically valid.
+If Everything worked out you can now run BinEd.test.exe and it should greet you with the replaced name.

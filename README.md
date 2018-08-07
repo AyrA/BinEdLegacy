@@ -17,6 +17,7 @@ It's optimized to be used with scripts but is manually usable too.
 
 This application has no command line arguments.
 Just run it as is from console or double click the executable.
+In the main project folder is a file called `Example.txt`
 
 Type `?` to get started.
 
@@ -56,7 +57,8 @@ Commands will never ask for confirmation and are always executed instantaneously
 
 ### `?`
 
-This command shows the list of supported commands
+This command shows the list of supported commands.
+Because this command ignores all arguments it can be used as comment in Pipe Mode.
 
 ### `??`
 
