@@ -129,6 +129,9 @@ namespace BinEd
                         case CommandType.RepeatBytes:
                             RepeatBytes(OPT, C);
                             break;
+                        case CommandType.WriteRandom:
+                            WriteRandom(OPT, C);
+                            break;
                         case CommandType.Dump:
                             DumpContents(OPT, C);
                             break;
@@ -252,6 +255,10 @@ namespace BinEd
                         break;
                     case "r":
                         C.CommandType = CommandType.RepeatBytes;
+                        C.Arguments = Segments.Skip(1).ToArray();
+                        break;
+                    case "rnd":
+                        C.CommandType = CommandType.WriteRandom;
                         C.Arguments = Segments.Skip(1).ToArray();
                         break;
                     case "s":

@@ -121,6 +121,10 @@ namespace BinEd
             /// </summary>
             RepeatBytes,
             /// <summary>
+            /// Writes the given number of random bytes to the file
+            /// </summary>
+            WriteRandom,
+            /// <summary>
             /// Seek to the given location
             /// </summary>
             SeekTo,

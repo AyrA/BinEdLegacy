@@ -10,6 +10,8 @@ namespace BinEd
     /// </summary>
     public partial class Program
     {
+        private static Random RND;
+
         /// <summary>
         /// Compares two byte arrays faster than C# ever would
         /// </summary>
@@ -238,6 +240,73 @@ namespace BinEd
             else
             {
                 Status(OPT, "'w' requires at least one argument", RESULT.ARGUMENT_MISMATCH);
+            }
+        }
+
+        private static void WriteRandom(Options OPT, Command C)
+        {
+            if (FILE == null)
+            {
+                Status(OPT, "No file open", RESULT.NOFILE);
+            }
+            else if (C.Arguments.Length == 1)
+            {
+                var NumBytes = GetLong(C.Arguments[0], long.MinValue);
+                if (NumBytes > long.MinValue)
+                {
+                    //Negative numbers indicate how many bytes to not overwrite
+                    if (NumBytes <= 0)
+                    {
+                        if (NumBytes == 0)
+                        {
+                            //Distinguish negative Zero from positive zero
+                            if (C.Arguments[0][0] == '-')
+                            {
+                                NumBytes = FILE.Length - FILE.Position;
+                            }
+                        }
+                        else
+                        {
+                            //If NumBytes is less than 0, it dictates how many bytes to leave
+                            //Need to add the number because it's already negative
+                            NumBytes = FILE.Length - FILE.Position + NumBytes;
+                        }
+                    }
+                    if (NumBytes < 0)
+                    {
+                        Status(OPT, $"Argument {C.Arguments[0]} would write a negative number of bytes", RESULT.INVALID_NUMBER);
+                    }
+                    else
+                    {
+                        //Operate in chunks of 1 MB for small data (<100MB) and 100 MB for large data (100MB+)
+                        byte[] Buffer = new byte[1000000 * (NumBytes >= 100000000 ? 100 : 1)];
+                        if (RND == null)
+                        {
+                            RND = new Random();
+                        }
+                        try
+                        {
+                            for (long i = 0; i < NumBytes; i += Buffer.Length)
+                            {
+                                RND.NextBytes(Buffer);
+                                FILE.Write(Buffer, 0, (int)Math.Min(Buffer.Length, NumBytes - i));
+                            }
+                            Status(OPT, $"Written={NumBytes} Position={FILE.Position}", RESULT.OK);
+                        }
+                        catch (Exception ex)
+                        {
+                            Status(OPT, $"Unable to concat files. {ex.Message}", RESULT.IO_ERROR);
+                        }
+                    }
+                }
+                else
+                {
+                    Status(OPT, $"Unable to parse {C.Arguments[0]} into a number", RESULT.INVALID_NUMBER);
+                }
+            }
+            else
+            {
+                Status(OPT, $"Require exactly 1 argument, {C.Arguments.Length} given", RESULT.ARGUMENT_MISMATCH);
             }
         }
 
@@ -549,9 +618,9 @@ The number in brackets is the default (if static).
 Settings that accept 0 or 1 as a value will treat everything that is not 0
 as a 1.
 
-out[1]: If set to 0 it will no longer output any status messages
-pipe: If set to 1, the application will only output codes, no messages.
-      Defaults to 1 if the input stream is redirected 
+out[1]  : If set to 0 it will no longer output any status messages
+pipe    : If set to 1, the application will only output codes, no messages.
+          Defaults to 1 if the input stream is redirected 
 fatal[0]: If set to 1, the application will abort on any error.
 share[0]: If set to 1, opened files are not locked for exclusive use.
 
@@ -605,6 +674,10 @@ w    - Writes the given hex values to the currently open file
 r    - Repeatedly write given bytes.
        Arg 1  : Number of repetitions
        Arg 2-n: Bytes. See 'w' for info on format
+
+rnd  - Writes the given number of random bytes
+       Arg 1: Number of random bytes. If negative, stops this many bytes before
+              the file end
 
 s    - Seek to the given position
        Arg 1: New Position
