@@ -12,16 +12,6 @@ namespace BinEd
     {
         private static Random RND;
 
-        /// <summary>
-        /// Compares two byte arrays faster than C# ever would
-        /// </summary>
-        /// <param name="b1">Array 1</param>
-        /// <param name="b2">Array 2</param>
-        /// <param name="count">Number of bytes to compare</param>
-        /// <returns>0 if identical, otherwise the numerical difference</returns>
-        [DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl)]
-        static extern int memcmp(byte[] b1, byte[] b2, UIntPtr count);
-
         private static void FindContent(Options OPT, Command C)
         {
             if (FILE == null)
@@ -51,7 +41,7 @@ namespace BinEd
                             while (FILE.Position < FILE.Length)
                             {
                                 //Check if content found by comparing the byte arrays
-                                if (memcmp(Buffer, Bytes, (UIntPtr)Buffer.Length) == 0)
+                                if (NativeMethods.CompareBytes(Buffer, Bytes, (UIntPtr)Buffer.Length) == 0)
                                 {
                                     //Set proper file position
                                     FILE.Position -= Buffer.Length;
@@ -519,27 +509,37 @@ namespace BinEd
                 FileName = C.Arguments.FirstOrDefault();
                 if (!string.IsNullOrEmpty(FileName))
                 {
-                    try
+                    if (FileName != ".")
                     {
-                        FileName = Path.GetFullPath(FileName);
-                    }
-                    catch (Exception ex)
-                    {
-                        FileName = null;
-                        Status(OPT, $"Unable to get full file name. {ex.Message}", RESULT.IO_ERROR);
+                        try
+                        {
+                            FileName = Path.GetFullPath(FileName);
+                        }
+                        catch (Exception ex)
+                        {
+                            FileName = null;
+                            Status(OPT, $"Unable to get full file name. {ex.Message}", RESULT.IO_ERROR);
+                        }
                     }
                     if (FileName != null)
                     {
                         try
                         {
-                            var Attr = File.Exists(FileName) ? File.GetAttributes(FileName) : FileAttributes.Normal;
-                            if ((Attr & CRITICAL) == 0)
+                            if (FileName == ".")
                             {
-                                FILE = File.Open(FileName, IsOpen ? FileMode.Open : FileMode.CreateNew, FileAccess.ReadWrite, OPT.Share ? SHARED : UNSHARED);
+                                FILE = new MemoryStream();
                             }
                             else
                             {
-                                throw new IOException("File has protective Attributes");
+                                var Attr = File.Exists(FileName) ? File.GetAttributes(FileName) : FileAttributes.Normal;
+                                if ((Attr & CRITICAL) == 0)
+                                {
+                                    FILE = File.Open(FileName, IsOpen ? FileMode.Open : FileMode.CreateNew, FileAccess.ReadWrite, OPT.Share ? SHARED : UNSHARED);
+                                }
+                                else
+                                {
+                                    throw new IOException("File has protective Attributes");
+                                }
                             }
                         }
                         catch (Exception ex)
@@ -568,13 +568,19 @@ namespace BinEd
         {
             Status(OPT, @"More Information
 
-Opening Files
+Opening files
 -------------
 Only one file can be opened at a time. Attempting to open/create a file
 before closing the current file will result in an error.
 Files opened with 'c' or 'o' are always opened in Read/Write mode.
 If the given file has one of these attributes, the operation will fail:
 ReadOnly, System, Hidden
+
+Memory file
+-----------
+If the file name for 'c' or 'o' is a single dot, a file in RAM will be opened.
+This file always starts empty and cannot be saved to disk.
+Size is purely limited to the amount of free memory.
 
 File names
 ----------
@@ -639,8 +645,8 @@ commands is limited to a single numerical code.
 
 ??   - More help
 
-c    - Create the file with the given name. Empties existing files
-       Arg 1: File to create/overwrite
+c    - Create a new file with the given name.
+       Arg 1: File to create
 
 o    - Open existing file for editing.
        Arg 1: File to open

@@ -89,12 +89,16 @@ namespace BinEd
                             }
                             else
                             {
+                                var isMemory = FILE.GetType() == typeof(MemoryStream);
                                 FILE.Close();
                                 FILE.Dispose();
                                 FILE = null;
                                 try
                                 {
-                                    File.Delete(FileName);
+                                    if (!isMemory)
+                                    {
+                                        File.Delete(FileName);
+                                    }
                                     Status(OPT, $"{FileName} closed and deleted", RESULT.OK);
                                 }
                                 catch (Exception ex)
@@ -342,7 +346,7 @@ Use the inline help system inside the application to get a command listing.");
 
         private static long GetLong(string Param, long Default = 0)
         {
-            long Ret = 0;
+            long Ret;
             if (!string.IsNullOrEmpty(Param))
             {
                 //Allow "+" Prefixing. Technically allows any number of plusses at the start
@@ -406,8 +410,10 @@ Use the inline help system inside the application to get a command listing.");
                 return null;
             }
             //Consolidate identical consecutive modes to make writes faster
-            var OPS = new List<ByteOperation>();
-            OPS.Add(Operations[0]);
+            var OPS = new List<ByteOperation>
+            {
+                Operations[0]
+            };
             for (var i = 1; i < Operations.Length; i++)
             {
                 var Current = Operations[i];
